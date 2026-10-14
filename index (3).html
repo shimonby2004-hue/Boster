@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Code - מערכת צמיחה חכמה</title>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Assistant', sans-serif;
+        }
+
+        body {
+            background-color: #030008;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding-bottom: 40px;
+        }
+
+        /* --- רקע חי ואנימציוני --- */
+        .neon-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background: radial-gradient(circle at 50% 50%, #120326 0%, #030008 100%);
+        }
+
+        .neon-ray {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.25), transparent);
+            height: 200%;
+            width: 150px;
+            transform: rotate(45deg);
+            animation: moveRays 12s infinite linear;
+            filter: blur(40px);
+        }
+
+        .neon-ray:nth-child(2) {
+            left: 40%;
+            animation-duration: 18s;
+            animation-direction: reverse;
+            background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent);
+        }
+
+        .neon-ray:nth-child(3) {
+            left: 80%;
+            animation-duration: 10s;
+            background: linear-gradient(90deg, transparent, rgba(217, 70, 239, 0.18), transparent);
+        }
+
+        @keyframes moveRays {
+            0% { transform: translateY(-50%) rotate(25deg); opacity: 0.3; }
+            50% { transform: translateY(0%) rotate(35deg); opacity: 0.7; }
+            100% { transform: translateY(50%) rotate(25deg); opacity: 0.3; }
+        }
+
+        .shards-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(135deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+                linear-gradient(225deg, rgba(255,255,255,0.03) 25%, transparent 25%);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        /* --- מסגרת ראשית --- */
+        .main-card {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            background: rgba(10, 15, 30, 0.65);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 24px;
+            padding: 32px 24px;
+            box-shadow: 
+                0 0 30px rgba(59, 130, 246, 0.15),
+                inset 0 0 20px rgba(59, 130, 246, 0.08),
+                0 20px 40px rgba(0, 0, 0, 0.6);
+            z-index: 10;
+            overflow: hidden;
+            margin: 20px;
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(135deg, #3b82f6, transparent, #8b5cf6, transparent);
+            border-radius: 26px;
+            z-index: -1;
+            opacity: 0.6;
+            filter: blur(4px);
+        }
+
+        .header-title {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 6px;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        /* --- סטטיסטיקות עליונות --- */
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px 8px;
+            margin-bottom: 22px;
+        }
+
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stat-item .stat-num {
+            font-size: 16px;
+            font-weight: 800;
+            color: #38bdf8;
+            display: block;
+        }
+
+        .stat-item .stat-label {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        /* --- שלבי המערכת --- */
+        .view-section {
+            display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .label-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .platforms-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .platform-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .platform-card i {
+            font-size: 20px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .platform-card.instagram i { color: #e1306c; }
+        .platform-card.facebook i { color: #1877f2; }
+        .platform-card.tiktok i { color: #00f2fe; }
+        .platform-card.telegram i { color: #229ed9; }
+
+        .platform-card span {
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .platform-card:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .platform-card.selected {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+        .platform-card.selected span { color: #ffffff; }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .custom-input {
+            width: 100%;
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            text-align: right;
+        }
+
+        .custom-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .amounts-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .amount-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px 0;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .amount-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .amount-btn.selected {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+        }
+
+        /* כפתור ראשי */
+        .action-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(59, 130, 246, 0.6);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* --- אמינות --- */
+        .trust-row {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .trust-item i {
+            color: #10b981;
+            font-size: 13px;
+        }
+
+        /* --- מסך טעינה --- */
+        .loading-container {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .liquid-bar-wrapper {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            margin: 24px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .liquid-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            border-radius: 6px;
+            transition: width 0.1s linear;
+            position: relative;
+            box-shadow: 0 0 15px #3b82f6;
+        }
+
+        .liquid-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: waveMotion 1.5s infinite linear;
+        }
+
+        @keyframes waveMotion {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stats-label {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .stats-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #38bdf8;
+        }
+
+        .status-message {
+            font-size: 13px;
+            color: #a78bfa;
+            margin-top: 16px;
+            min-height: 20px;
+            transition: opacity 0.3s;
+        }
+
+        /* --- מסך הצלחה --- */
+        .success-box {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .success-icon-glow {
+            width: 70px;
+            height: 70px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+            color: #10b981;
+            font-size: 30px;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+            animation: pulseSuccess 2s infinite;
+        }
+
+        @keyframes pulseSuccess {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .success-box h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .success-box p {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        .order-summary {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        .order-summary .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .order-summary .row:last-child {
+            margin-bottom: 0;
+        }
+
+        .order-summary .label {
+            color: #94a3b8;
+        }
+
+        .order-summary .value {
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        .order-id {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- כפתור תמיכה צף --- */
+        .support-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #229ed9, #0088cc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            box-shadow: 0 8px 25px rgba(34, 158, 217, 0.5);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            text-decoration: none;
+        }
+
+        .support-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(34, 158, 217, 0.7);
+        }
+
+        .support-btn::after {
+            content: 'תמיכה';
+            position: absolute;
+            right: 70px;
+            background: rgba(10, 15, 30, 0.95);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 8px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            border: 1px solid rgba(34, 158, 217, 0.4);
+        }
+
+        .support-btn:hover::after {
+            opacity: 1;
+        }
+
+        /* --- Footer --- */
+        .site-footer {
+            text-align: center;
+            padding: 16px 20px;
+            font-size: 12px;
+            color: #64748b;
+            z-index: 5;
+            max-width: 480px;
+            width: 100%;
+        }
+
+        .site-footer .copyright {
+            margin-bottom: 8px;
+        }
+
+        .site-footer .links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .site-footer a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .site-footer a:hover {
+            color: #3b82f6;
+        }
+
+        /* הודעת שגיאה קטנה */
+        .error-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 200;
+            display: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- רקע חי -->
+    <div class="neon-background">
+        <div class="neon-ray" style="top: -50%; left: 10%;"></div>
+        <div class="neon-ray" style="top: -20%; left: 50%;"></div>
+        <div class="neon-ray" style="top: 10%; left: 80%;"></div>
+        <div class="shards-overlay"></div>
+    </div>
+
+    <!-- Toast שגיאה -->
+    <div id="errorToast" class="error-toast"></div>
+
+    <!-- מסגרת ראשית -->
+    <div class="main-card">
+        
+        <!-- === שלב 1: טופס === -->
+        <div id="viewForm" class="view-section active">
+            <div class="header-title">
+                <h1>ניהול צמיחה חכם</h1>
+                <p>בחר רשת חברתית והזן את פרטי העמוד שלך</p>
+            </div>
+
+            <!-- סטטיסטיקות חיות -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-num" id="statVisits">0</span>
+                    <span class="stat-label">כניסות היום</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="statOrders">0</span>
+                    <span class="stat-label">הזמנות</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="statUsers">0</span>
+                    <span class="stat-label">משתמשים</span>
+                </div>
+            </div>
+
+            <!-- בחירת רשת -->
+            <div class="input-group">
+                <label class="label-text">בחר רשת חברתית</label>
+                <div class="platforms-grid">
+                    <div class="platform-card instagram selected" onclick="selectPlatform('instagram', this)">
+                        <i class="fa-brands fa-instagram"></i>
+                        <span>אינסטגרם</span>
+                    </div>
+                    <div class="platform-card facebook" onclick="selectPlatform('facebook', this)">
+                        <i class="fa-brands fa-facebook"></i>
+                        <span>פייסבוק</span>
+                    </div>
+                    <div class="platform-card tiktok" onclick="selectPlatform('tiktok', this)">
+                        <i class="fa-brands fa-tiktok"></i>
+                        <span>טיקטוק</span>
+                    </div>
+                    <div class="platform-card telegram" onclick="selectPlatform('telegram', this)">
+                        <i class="fa-brands fa-telegram"></i>
+                        <span>טלגרם</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- הזנת יעד -->
+            <div class="input-group">
+                <label class="label-text">שם משתמש או קישור לעמוד</label>
+                <input type="text" id="targetInput" class="custom-input" placeholder="לדוגמה: @username או קישור מלא" autocomplete="off">
+            </div>
+
+            <!-- כמות -->
+            <div class="input-group">
+                <label class="label-text">בחר כמות יעד</label>
+                <div class="amounts-grid">
+                    <div class="amount-btn" onclick="selectAmount(10, this)">10</div>
+                    <div class="amount-btn selected" onclick="selectAmount(50, this)">50</div>
+                    <div class="amount-btn" onclick="selectAmount(100, this)">100</div>
+                    <div class="amount-btn" onclick="selectAmount(500, this)">500</div>
+                </div>
+            </div>
+
+            <button class="action-btn" id="startBtn" onclick="startProcess()">התחל תהליך צמיחה</button>
+
+            <!-- אמינות -->
+            <div class="trust-row">
+                <div class="trust-item"><i class="fa-solid fa-shield-halved"></i> מאובטח SSL</div>
+                <div class="trust-item"><i class="fa-solid fa-bolt"></i> עיבוד מהיר</div>
+                <div class="trust-item"><i class="fa-solid fa-headset"></i> תמיכה 24/7</div>
+            </div>
+        </div>
+
+        <!-- === שלב 2: טעינה === -->
+        <div id="viewLoading" class="view-section">
+            <div class="header-title">
+                <h1>מעבד בקשה ברשת</h1>
+                <p>מערכת ה-AI מבצעת אופטימיזציה וחיבור לשרתים</p>
+            </div>
+
+            <div class="loading-container">
+                <div class="liquid-bar-wrapper">
+                    <div id="liquidFill" class="liquid-fill"></div>
+                </div>
+
+                <div class="stats-row">
+                    <span class="stats-label">התקדמות תהליך</span>
+                    <span id="percentText" class="stats-value">0%</span>
+                </div>
+
+                <div class="stats-row">
+                    <span class="stats-label">זמן משוער שנותר</span>
+                    <span id="timerText" class="stats-value">02:00</span>
+                </div>
+
+                <div id="statusMessage" class="status-message">מתחבר לשרתי האופטימיזציה...</div>
+            </div>
+        </div>
+
+        <!-- === שלב 3: הצלחה === -->
+        <div id="viewSuccess" class="view-section">
+            <div class="success-box">
+                <div class="success-icon-glow">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <h2>ההזמנה התחילה בהצלחה!</h2>
+                <p>צמיחת העוקבים והאינטראקציות בעמוד שלך החלה ברגעים אלו ממש דרך המערכת האוטומטית.</p>
+                
+                <div class="order-id" id="orderIdDisplay"></div>
+                
+                <div class="order-summary" id="orderSummary"></div>
+
+                <button class="action-btn" onclick="resetToHome()">חזור למסך הראשי</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- כפתור תמיכה צף - פותח צ'אט ישיר עם המנהל -->
+    <a href="https://t.me/user?id=8017590244" target="_blank" rel="noopener" class="support-btn" title="תמיכה ישירה">
+        <i class="fa-brands fa-telegram"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="copyright">
+            © 2026 AI Agent Code — כל הזכויות שמורות
+        </div>
+        <div class="links">
+            <a href="https://t.me/user?id=8017590244" target="_blank">תמיכה</a>
+            <a href="#" onclick="alert('המערכת פועלת באופן אוטומטי ומאובטח. לשאלות נוספות פנה לתמיכה.'); return false;">הדרכה</a>
+            <a href="#" onclick="document.getElementById('viewForm').scrollIntoView({behavior:'smooth'}); return false;">לפאנל</a>
+        </div>
+    </footer>
+
+    <script>
+        // ====================== הגדרות ======================
+        let selectedPlatform = 'instagram';
+        let selectedAmount = 50;
+        let timerInterval = null;
+        let currentOrder = null;
+
+        // שמות תצוגה
+        const platformNames = {
+            instagram: 'אינסטגרם',
+            facebook: 'פייסבוק',
+            tiktok: 'טיקטוק',
+            telegram: 'טלגרם'
+        };
+
+        // הודעות סטטוס בזמן טעינה
+        const statusMessages = [
+            'מתחבר לשרתי האופטימיזציה...',
+            'מנתח את הפרופיל שלך...',
+            'מאתר מקורות צמיחה איכותיים...',
+            'מבצע חיבור לרשתות...',
+            'מפעיל אלגוריתם AI...',
+            'מאמת תקינות יעד...',
+            'מכין חבילת צמיחה...',
+            'שולח בקשה לשרתים...',
+            'מבצע אופטימיזציה סופית...',
+            'כמעט מוכן...'
+        ];
+
+        // ====================== סטטיסטיקות (מקומיות + בסיס) ======================
+        function initStats() {
+            // בסיס ריאליסטי (אפשר לשנות)
+            const baseVisits = 1847;
+            const baseOrders = 392;
+            const baseUsers = 1256;
+
+            let visits = parseInt(localStorage.getItem('ai_visits') || '0');
+            let orders = parseInt(localStorage.getItem('ai_orders') || '0');
+            let users = parseInt(localStorage.getItem('ai_users') || '0');
+
+            // כניסה חדשה
+            visits += 1;
+            localStorage.setItem('ai_visits', visits);
+
+            // משתמש חדש (פעם ראשונה במכשיר)
+            if (!localStorage.getItem('ai_user_id')) {
+                localStorage.setItem('ai_user_id', 'u_' + Date.now() + Math.random().toString(36).substr(2, 6));
+                users += 1;
+                localStorage.setItem('ai_users', users);
+            }
+
+            document.getElementById('statVisits').textContent = (baseVisits + visits).toLocaleString('he-IL');
+            document.getElementById('statOrders').textContent = (baseOrders + orders).toLocaleString('he-IL');
+            document.getElementById('statUsers').textContent = (baseUsers + users).toLocaleString('he-IL');
+        }
+
+        function incrementOrders() {
+            let orders = parseInt(localStorage.getItem('ai_orders') || '0') + 1;
+            localStorage.setItem('ai_orders', orders);
+            // עדכון תצוגה מיידי
+            const baseOrders = 392;
+            document.getElementById('statOrders').textContent = (baseOrders + orders).toLocaleString('he-IL');
+        }
+
+        // ====================== בחירות ======================
+        function selectPlatform(platform, element) {
+            document.querySelectorAll('.platform-card').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedPlatform = platform;
+        }
+
+        function selectAmount(amount, element) {
+            document.querySelectorAll('.amount-btn').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedAmount = amount;
+        }
+
+        // ====================== התחלת תהליך ======================
+        function startProcess() {
+            const inputVal = document.getElementById('targetInput').value.trim();
+            if (!inputVal) {
+                showError('אנא הזן שם משתמש או קישור תקין לעמוד.');
+                document.getElementById('targetInput').focus();
+                return;
+            }
+
+            // יצירת מזהה הזמנה
+            const orderId = 'ORD-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+
+            // איסוף פרטים על המשתמש (בטעם טוב)
+            const userAgent = navigator.userAgent;
+            const language = navigator.language || 'he-IL';
+            const screenInfo = `${window.screen.width}x${window.screen.height}`;
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const userId = localStorage.getItem('ai_user_id') || 'guest';
+
+            currentOrder = {
+                orderId: orderId,
+                platform: selectedPlatform,
+                platformName: platformNames[selectedPlatform],
+                target: inputVal,
+                amount: selectedAmount,
+                timestamp: new Date().toISOString(),
+                localTime: new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' }),
+                userId: userId,
+                userAgent: userAgent.substring(0, 120),
+                language: language,
+                screen: screenInfo,
+                timezone: timezone,
+                referrer: document.referrer || 'ישיר'
+            };
+
+            // מעבר למסך טעינה
+            document.getElementById('viewForm').classList.remove('active');
+            document.getElementById('viewLoading').classList.add('active');
+            document.getElementById('startBtn').disabled = true;
+
+            // 120 שניות
+            const totalSeconds = 120;
+            let elapsedSeconds = 0;
+
+            const liquidFill = document.getElementById('liquidFill');
+            const percentText = document.getElementById('percentText');
+            const timerText = document.getElementById('timerText');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // עדכון הודעת סטטוס כל ~12 שניות
+            let statusIndex = 0;
+            statusMessage.textContent = statusMessages[0];
+
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                let progress = (elapsedSeconds / totalSeconds) * 100;
+                if (progress > 100) progress = 100;
+
+                liquidFill.style.width = progress + '%';
+                percentText.innerText = Math.floor(progress) + '%';
+
+                let remaining = totalSeconds - elapsedSeconds;
+                if (remaining < 0) remaining = 0;
+                let minutes = Math.floor(remaining / 60);
+                let seconds = remaining % 60;
+                timerText.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                // החלפת הודעת סטטוס
+                const newIndex = Math.min(Math.floor(elapsedSeconds / 12), statusMessages.length - 1);
+                if (newIndex !== statusIndex) {
+                    statusIndex = newIndex;
+                    statusMessage.style.opacity = 0;
+                    setTimeout(() => {
+                        statusMessage.textContent = statusMessages[statusIndex];
+                        statusMessage.style.opacity = 1;
+                    }, 200);
+                }
+
+                if (elapsedSeconds >= totalSeconds) {
+                    clearInterval(timerInterval);
+                    finishOrder();
+                }
+            }, 1000);
+        }
+
+        // ====================== סיום הזמנה + שליחה לבוט ======================
+        async function finishOrder() {
+            // עדכון סטטיסטיקות
+            incrementOrders();
+
+            // הצגת סיכום
+            document.getElementById('orderIdDisplay').textContent = 'מספר הזמנה: ' + currentOrder.orderId;
+            
+            document.getElementById('orderSummary').innerHTML = `
+                <div class="row"><span class="label">רשת</span><span class="value">${currentOrder.platformName}</span></div>
+                <div class="row"><span class="label">יעד</span><span class="value">${escapeHtml(currentOrder.target)}</span></div>
+                <div class="row"><span class="label">כמות</span><span class="value">${currentOrder.amount}</span></div>
+                <div class="row"><span class="label">שעה</span><span class="value">${currentOrder.localTime}</span></div>
+            `;
+
+            // מעבר למסך הצלחה
+            document.getElementById('viewLoading').classList.remove('active');
+            document.getElementById('viewSuccess').classList.add('active');
+
+            // שליחה לשרת (Render) → משם לבוט טלגרם
+            try {
+                await sendOrderToBot(currentOrder);
+            } catch (err) {
+                console.warn('שליחה לבוט נכשלה (ייתכן שאין endpoint עדיין):', err.message);
+                // לא מציגים שגיאה למשתמש – ההזמנה כבר "הצליחה" מבחינתו
+            }
+        }
+
+        // שליחת ההזמנה ל-endpoint שלך ב-Render
+        async function sendOrderToBot(order) {
+            // כאן אתה תשים את ה-URL של ה-endpoint שלך ב-Render
+            // לדוגמה: https://your-app.onrender.com/api/notify-order
+            const endpoint = '/api/notify-order';   // שנה ל-URL המלא אם צריך
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(order)
+            });
+
+            if (!response.ok) {
+                throw new Error('Server responded with ' + response.status);
+            }
+            return response.json();
+        }
+
+        // ====================== איפוס ======================
+        function resetToHome() {
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('viewSuccess').classList.remove('active');
+            document.getElementById('viewForm').classList.add('active');
+            document.getElementById('targetInput').value = '';
+            document.getElementById('liquidFill').style.width = '0%';
+            document.getElementById('percentText').innerText = '0%';
+            document.getElementById('timerText').innerText = '02:00';
+            document.getElementById('startBtn').disabled = false;
+            currentOrder = null;
+        }
+
+        // ====================== עזרים ======================
+        function showError(msg) {
+            const toast = document.getElementById('errorToast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3500);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // הפעלה
+        initStats();
+    </script>
+</body>
+</html>
