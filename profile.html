@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אזור אישי – AI Agent Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Assistant', sans-serif; }
+        body {
+            background: #030008;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px 60px;
+        }
+        .neon-bg {
+            position: fixed; inset: 0; z-index: -1;
+            background: radial-gradient(circle at 50% 30%, #120326 0%, #030008 100%);
+        }
+        .card {
+            width: 100%; max-width: 480px;
+            background: rgba(10,15,30,0.75);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(59,130,246,0.4);
+            border-radius: 22px;
+            padding: 28px 22px;
+            box-shadow: 0 0 40px rgba(59,130,246,0.15);
+        }
+        h1 { font-size: 22px; font-weight: 800; text-align: center; margin-bottom: 6px; }
+        .sub { text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+        .online {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35);
+            border-radius: 20px; padding: 4px 12px; font-size: 11px; color: #34d399; font-weight: 600;
+            margin: 0 auto 18px; display: flex; width: fit-content;
+        }
+        .dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 8px #10b981; animation: pulse 1.6s infinite; }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3);opacity:.7} }
+
+        .stats {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px;
+        }
+        .stat {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 14px; text-align: center;
+        }
+        .stat .num { font-size: 22px; font-weight: 800; color: #38bdf8; }
+        .stat .lbl { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+        .section-title { font-size: 14px; font-weight: 700; color: #cbd5e1; margin-bottom: 10px; }
+
+        .order-list { display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; }
+        .order-item {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px; padding: 12px 14px; font-size: 13px;
+        }
+        .order-item .top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .order-item .id { color: #64748b; font-size: 11px; }
+        .order-item .status { font-size: 11px; font-weight: 600; }
+        .status.processing { color: #38bdf8; }
+        .status.waiting_payment { color: #fbbf24; }
+        .status.paid { color: #34d399; }
+
+        .empty { text-align: center; color: #64748b; padding: 30px 0; font-size: 14px; }
+
+        .back-btn {
+            display: block; text-align: center; margin-top: 20px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: #fff; text-decoration: none; padding: 12px; border-radius: 12px;
+            font-weight: 700; font-size: 14px;
+        }
+        .userid { font-size: 11px; color: #64748b; text-align: center; margin-top: 14px; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="neon-bg"></div>
+
+    <div class="card">
+        <h1>אזור אישי</h1>
+        <p class="sub">פרמטרים אונליין מהפאנל</p>
+
+        <div class="online">
+            <span class="dot"></span>
+            מחובר לשרת
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="num" id="totalOrders">—</div>
+                <div class="lbl">הזמנות שלי</div>
+            </div>
+            <div class="stat">
+                <div class="num" id="serverStatus">✓</div>
+                <div class="lbl">סטטוס שרת</div>
+            </div>
+        </div>
+
+        <div class="section-title">הזמנות אחרונות</div>
+        <div class="order-list" id="orderList">
+            <div class="empty">טוען...</div>
+        </div>
+
+        <a href="/" class="back-btn">חזרה לפאנל הראשי</a>
+        <div class="userid" id="userIdDisplay"></div>
+    </div>
+
+    <script>
+        const userId = localStorage.getItem('ai_user_id') || 'guest';
+        document.getElementById('userIdDisplay').textContent = 'מזהה: ' + userId;
+
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/profile-data?userId=' + encodeURIComponent(userId));
+                const data = await res.json();
+
+                if (!data.success) throw new Error('fail');
+
+                document.getElementById('totalOrders').textContent = data.totalOrders;
+                document.getElementById('serverStatus').textContent = data.online ? '✓' : '✗';
+
+                const list = document.getElementById('orderList');
+                if (!data.lastOrders || data.lastOrders.length === 0) {
+                    list.innerHTML = '<div class="empty">עדיין אין הזמנות</div>';
+                    return;
+                }
+
+                list.innerHTML = data.lastOrders.map(o => `
+                    <div class="order-item">
+                        <div class="top">
+                            <span>${o.platformName || o.platform || '—'} • ${o.amount || o.plan || ''}</span>
+                            <span class="status ${o.status || ''}">${o.status || '—'}</span>
+                        </div>
+                        <div class="id">${o.orderId || o.invoiceId || ''}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('orderList').innerHTML = '<div class="empty">לא ניתן לטעון נתונים כרגע</div>';
+            }
+        }
+
+        loadProfile();
+        // רענון כל 30 שניות
+        setInterval(loadProfile, 30000);
+    </script>
+</body>
+</html>

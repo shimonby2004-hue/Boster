@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Code - מערכת צמיחה חכמה</title>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Assistant', sans-serif;
+        }
+
+        body {
+            background-color: #030008;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding-bottom: 60px;
+        }
+
+        .neon-background {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background: radial-gradient(circle at 50% 50%, #120326 0%, #030008 100%);
+        }
+
+        .neon-ray {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.25), transparent);
+            height: 200%;
+            width: 150px;
+            transform: rotate(45deg);
+            animation: moveRays 12s infinite linear;
+            filter: blur(40px);
+        }
+        .neon-ray:nth-child(2) { left: 40%; animation-duration: 18s; animation-direction: reverse; background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent); }
+        .neon-ray:nth-child(3) { left: 80%; animation-duration: 10s; background: linear-gradient(90deg, transparent, rgba(217, 70, 239, 0.18), transparent); }
+
+        @keyframes moveRays {
+            0% { transform: translateY(-50%) rotate(25deg); opacity: 0.3; }
+            50% { transform: translateY(0%) rotate(35deg); opacity: 0.7; }
+            100% { transform: translateY(50%) rotate(25deg); opacity: 0.3; }
+        }
+
+        .shards-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(135deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+                linear-gradient(225deg, rgba(255,255,255,0.03) 25%, transparent 25%);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .main-card {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            background: rgba(10, 15, 30, 0.72);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            border-radius: 24px;
+            padding: 28px 22px;
+            box-shadow: 
+                0 0 40px rgba(59, 130, 246, 0.18),
+                inset 0 0 25px rgba(59, 130, 246, 0.08),
+                0 25px 50px rgba(0, 0, 0, 0.65);
+            z-index: 10;
+            overflow: hidden;
+            margin: 16px;
+            transition: box-shadow 0.4s ease;
+        }
+
+        .main-card::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(135deg, #3b82f6, transparent, #8b5cf6, transparent);
+            border-radius: 26px;
+            z-index: -1;
+            opacity: 0.55;
+            filter: blur(5px);
+            animation: borderGlow 6s ease-in-out infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.75; }
+        }
+
+        .header-title {
+            text-align: center;
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 4px;
+            text-shadow: 0 0 12px rgba(59, 130, 246, 0.55);
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .online-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #34d399;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulseDot 1.6s infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.35); opacity: 0.7; }
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 11px 6px;
+            margin-bottom: 18px;
+        }
+
+        .stat-item { text-align: center; flex: 1; }
+        .stat-item .stat-num {
+            font-size: 15px;
+            font-weight: 800;
+            color: #38bdf8;
+            display: block;
+        }
+        .stat-item .stat-label {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .view-section { display: none; animation: fadeIn 0.4s ease forwards; }
+        .view-section.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .label-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .platforms-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 9px;
+            margin-bottom: 16px;
+        }
+
+        .platform-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 11px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .platform-card i { font-size: 20px; margin-bottom: 5px; display: block; }
+        .platform-card.instagram i { color: #e1306c; }
+        .platform-card.facebook i { color: #1877f2; }
+        .platform-card.tiktok i { color: #00f2fe; }
+        .platform-card.telegram i { color: #229ed9; }
+        .platform-card span { font-size: 11px; color: #94a3b8; font-weight: 600; }
+        .platform-card:hover { background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.35); }
+        .platform-card.selected {
+            background: rgba(59, 130, 246, 0.22);
+            border-color: #3b82f6;
+            box-shadow: 0 0 16px rgba(59, 130, 246, 0.45);
+        }
+        .platform-card.selected span { color: #ffffff; }
+
+        .input-group { margin-bottom: 14px; }
+
+        .custom-input {
+            width: 100%;
+            background: rgba(3, 7, 18, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 15px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+            text-align: right;
+        }
+        .custom-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 14px rgba(59, 130, 246, 0.35);
+        }
+
+        .profile-preview {
+            display: none;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .profile-preview.show { 
+            display: flex; 
+            align-items: center; 
+            gap: 14px; 
+            animation: slideProfile 0.4s ease;
+        }
+
+        @keyframes slideProfile {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .profile-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            position: relative;
+        }
+        .profile-avatar .online-mini {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border: 2px solid #0a0f1e;
+            border-radius: 50%;
+        }
+
+        .profile-info { flex: 1; min-width: 0; }
+        .profile-info .name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .profile-info .handle {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+        .profile-info .meta {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .profile-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .amounts-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .amount-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 11px 0 9px;
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .amount-btn .tag {
+            display: block;
+            font-size: 9px;
+            font-weight: 600;
+            margin-top: 2px;
+            letter-spacing: 0.3px;
+        }
+        .amount-btn.free .tag { color: #34d399; }
+        .amount-btn.pro .tag { color: #60a5fa; }
+
+        .amount-btn:hover { background: rgba(59, 130, 246, 0.12); }
+
+        .amount-btn.selected.free {
+            background: linear-gradient(135deg, #059669, #10b981);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+        }
+        .amount-btn.selected.free .tag { color: rgba(255,255,255,0.85); }
+
+        .amount-btn.pro {
+            border-color: rgba(59, 130, 246, 0.35);
+        }
+        .amount-btn.selected.pro {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 0 18px rgba(59, 130, 246, 0.55);
+        }
+        .amount-btn.selected.pro .tag { color: rgba(255,255,255,0.9); }
+
+        .action-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 28px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(59, 130, 246, 0.55);
+        }
+        .action-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .trust-row {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .trust-item i { color: #10b981; font-size: 12px; }
+
+        .security-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 11px;
+            color: #64748b;
+        }
+        .security-bar i { color: #38bdf8; }
+
+        .loading-container { text-align: center; padding: 12px 0; }
+
+        .liquid-bar-wrapper {
+            width: 100%;
+            height: 11px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .liquid-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            border-radius: 6px;
+            transition: width 0.1s linear;
+            position: relative;
+            box-shadow: 0 0 15px #3b82f6;
+        }
+        .liquid-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: waveMotion 1.5s infinite linear;
+        }
+        @keyframes waveMotion {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 11px 14px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .stats-label { font-size: 13px; color: #94a3b8; }
+        .stats-value { font-size: 14px; font-weight: 700; color: #38bdf8; }
+
+        .status-message {
+            font-size: 13px;
+            color: #a78bfa;
+            margin-top: 14px;
+            min-height: 20px;
+            transition: opacity 0.3s;
+        }
+
+        .success-box { text-align: center; padding: 8px 0; }
+        .success-icon-glow {
+            width: 68px; height: 68px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: #10b981;
+            font-size: 28px;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+            animation: pulseSuccess 2s infinite;
+        }
+        @keyframes pulseSuccess {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 14px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .success-box h2 { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+        .success-box p { font-size: 13px; color: #94a3b8; line-height: 1.55; margin-bottom: 14px; }
+
+        .order-summary {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 13px 15px;
+            margin-bottom: 16px;
+            text-align: right;
+        }
+        .order-summary .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+        .order-summary .row:last-child { margin-bottom: 0; }
+        .order-summary .label { color: #94a3b8; }
+        .order-summary .value { color: #e2e8f0; font-weight: 600; }
+        .order-id { font-size: 12px; color: #64748b; margin-bottom: 12px; letter-spacing: 0.4px; }
+
+        .support-btn {
+            position: fixed;
+            bottom: 22px;
+            left: 22px;
+            width: 58px; height: 58px;
+            background: linear-gradient(135deg, #229ed9, #0088cc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 26px;
+            box-shadow: 0 8px 24px rgba(34, 158, 217, 0.5);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            text-decoration: none;
+        }
+        .support-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 30px rgba(34, 158, 217, 0.7);
+        }
+        .support-btn::after {
+            content: 'תמיכה';
+            position: absolute;
+            right: 68px;
+            background: rgba(10, 15, 30, 0.95);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 11px;
+            border-radius: 8px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            border: 1px solid rgba(34, 158, 217, 0.4);
+        }
+        .support-btn:hover::after { opacity: 1; }
+
+        .site-footer {
+            text-align: center;
+            padding: 14px 18px;
+            font-size: 12px;
+            color: #64748b;
+            z-index: 5;
+            max-width: 480px;
+            width: 100%;
+        }
+        .site-footer .copyright { margin-bottom: 8px; }
+        .site-footer .links {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .site-footer a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.2s;
+            font-size: 12px;
+        }
+        .site-footer a:hover { color: #3b82f6; }
+
+        .extra-links {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .extra-links a {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 11px;
+            color: #94a3b8;
+            text-decoration: none;
+        }
+        .extra-links a:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+
+        .error-toast {
+            position: fixed;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            padding: 11px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 300;
+            display: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        /* ===== מודל תשלומים DEMO ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .payment-modal {
+            background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 22px;
+            width: 100%;
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px 20px 20px;
+            position: relative;
+            box-shadow: 0 0 50px rgba(99, 102, 241, 0.25), 0 25px 50px rgba(0,0,0,0.6);
+            transform: scale(0.92) translateY(20px);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.show .payment-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            width: 32px; height: 32px;
+            background: rgba(255,255,255,0.08);
+            border: none;
+            border-radius: 50%;
+            color: #94a3b8;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .modal-header .pro-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 14px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .modal-header p {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .plans-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .plan-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .plan-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(99, 102, 241, 0.08);
+            transform: translateY(-2px);
+        }
+        .plan-card.popular {
+            border-color: rgba(234, 179, 8, 0.45);
+            background: rgba(234, 179, 8, 0.06);
+        }
+        .plan-card.popular:hover {
+            border-color: rgba(234, 179, 8, 0.7);
+            box-shadow: 0 0 25px rgba(234, 179, 8, 0.15);
+        }
+
+        .plan-card .trial-badge {
+            position: absolute;
+            top: -1px;
+            right: 16px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+            color: #1c1917;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45);
+            letter-spacing: 0.3px;
+            animation: goldShine 2.5s ease-in-out infinite;
+        }
+
+        @keyframes goldShine {
+            0%, 100% { filter: brightness(1); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45); }
+            50% { filter: brightness(1.25); box-shadow: 0 4px 18px rgba(245, 158, 11, 0.7); }
+        }
+
+        .plan-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .plan-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+        .plan-price {
+            font-size: 22px;
+            font-weight: 800;
+            color: #fff;
+        }
+        .plan-price span {
+            font-size: 13px;
+            font-weight: 500;
+            color: #94a3b8;
+        }
+        .plan-desc {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+        .plan-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .plan-features span {
+            background: rgba(255,255,255,0.06);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 11px;
+            color: #cbd5e1;
+        }
+        .plan-features span i {
+            color: #34d399;
+            margin-left: 3px;
+            font-size: 10px;
+        }
+
+        .demo-notice {
+            text-align: center;
+            font-size: 11px;
+            color: #64748b;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px dashed rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-top: 4px;
+        }
+        .demo-notice i { color: #f87171; margin-left: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="neon-background">
+        <div class="neon-ray" style="top: -50%; left: 10%;"></div>
+        <div class="neon-ray" style="top: -20%; left: 50%;"></div>
+        <div class="neon-ray" style="top: 10%; left: 80%;"></div>
+        <div class="shards-overlay"></div>
+    </div>
+
+    <div id="errorToast" class="error-toast"></div>
+
+    <!-- ========== מודל תשלומים – Crypto Pay ========== -->
+    <!-- 
+        תשלום אמיתי דרך Crypto Bot (Crypto Pay API)
+        Token נמצא ב-Environment Variable: CRYPTO_PAY_TOKEN
+    -->
+    <div id="paymentModal" class="modal-overlay" onclick="if(event.target===this)closePaymentModal()">
+        <div class="payment-modal" onclick="event.stopPropagation()">
+            <button class="modal-close" onclick="closePaymentModal()"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div class="modal-header">
+                <div class="pro-badge"><i class="fa-solid fa-crown"></i> PRO</div>
+                <h2>בחר מסלול צמיחה</h2>
+                <p>שדרג וקבל כמויות גדולות יותר + עדיפות בעיבוד</p>
+            </div>
+
+            <div class="plans-grid">
+                <div class="plan-card" onclick="selectPlan('monthly', 3)">
+                    <div class="trial-badge">✦ חודש ניסיון חינם</div>
+                    <div class="plan-top">
+                        <div class="plan-name">חודשי</div>
+                        <div class="plan-price">$3 <span>/חודש</span></div>
+                    </div>
+                    <div class="plan-desc">גמישות מקסימלית • ביטול בכל עת</div>
+                    <div class="plan-features">
+                        <span><i class="fa-solid fa-check"></i> עד 500 יעד</span>
+                        <span><i class="fa-solid fa-check"></i> עדיפות בינונית</span>
+                        <span><i class="fa-solid fa-check"></i> תמיכה מהירה</span>
+                    </div>
+                </div>
+
+                <div class="plan-card popular" onclick="selectPlan('quarterly', 8)">
+                    <div class="trial-badge">✦ חודש ניסיון חינם</div>
+                    <div class="plan-top">
+                        <div class="plan-name">3 חודשים <span style="font-size:11px;color:#fbbf24;">★ מומלץ</span></div>
+                        <div class="plan-price">$8 <span>/3 חוד׳</span></div>
+                    </div>
+                    <div class="plan-desc">חיסכון של 11% • הכי משתלם לרוב</div>
+                    <div class="plan-features">
+                        <span><i class="fa-solid fa-check"></i> עד 2,000 יעד</span>
+                        <span><i class="fa-solid fa-check"></i> עדיפות גבוהה</span>
+                        <span><i class="fa-solid fa-check"></i> תמיכה VIP</span>
+                        <span><i class="fa-solid fa-check"></i> דוחות שבועיים</span>
+                    </div>
+                </div>
+
+                <div class="plan-card" onclick="selectPlan('yearly', 32)">
+                    <div class="trial-badge">✦ חודש ניסיון חינם</div>
+                    <div class="plan-top">
+                        <div class="plan-name">שנתי</div>
+                        <div class="plan-price">$32 <span>/שנה</span></div>
+                    </div>
+                    <div class="plan-desc">חיסכון מקסימלי • $2.67 לחודש</div>
+                    <div class="plan-features">
+                        <span><i class="fa-solid fa-check"></i> כמות בלתי מוגבלת</span>
+                        <span><i class="fa-solid fa-check"></i> עדיפות מקסימלית</span>
+                        <span><i class="fa-solid fa-check"></i> מנהל אישי</span>
+                        <span><i class="fa-solid fa-check"></i> API גישה</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-notice">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                תשלום מאובטח דרך Crypto Bot • USDT / TON / BTC
+            </div>
+        </div>
+    </div>
+
+    <div class="main-card">
+        
+        <div id="viewForm" class="view-section active">
+            <div class="header-title">
+                <h1>ניהול צמיחה חכם</h1>
+                <p>בחר רשת חברתית והזן את פרטי העמוד שלך</p>
+                <div class="online-badge">
+                    <span class="online-dot"></span>
+                    מערכת פעילה • 24/7
+                </div>
+            </div>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-num" id="statVisits">0</span>
+                    <span class="stat-label">כניסות היום</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="statOrders">0</span>
+                    <span class="stat-label">הזמנות</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="statUsers">0</span>
+                    <span class="stat-label">משתמשים</span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="label-text">בחר רשת חברתית</label>
+                <div class="platforms-grid">
+                    <div class="platform-card instagram selected" onclick="selectPlatform('instagram', this)">
+                        <i class="fa-brands fa-instagram"></i>
+                        <span>אינסטגרם</span>
+                    </div>
+                    <div class="platform-card facebook" onclick="selectPlatform('facebook', this)">
+                        <i class="fa-brands fa-facebook"></i>
+                        <span>פייסבוק</span>
+                    </div>
+                    <div class="platform-card tiktok" onclick="selectPlatform('tiktok', this)">
+                        <i class="fa-brands fa-tiktok"></i>
+                        <span>טיקטוק</span>
+                    </div>
+                    <div class="platform-card telegram" onclick="selectPlatform('telegram', this)">
+                        <i class="fa-brands fa-telegram"></i>
+                        <span>טלגרם</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="label-text">שם משתמש או קישור לעמוד</label>
+                <input type="text" id="targetInput" class="custom-input" placeholder="לדוגמה: @username או קישור מלא" autocomplete="off" oninput="onTargetInput()">
+            </div>
+
+            <div id="profilePreview" class="profile-preview">
+                <div class="profile-avatar">
+                    <i class="fa-solid fa-user" id="profileIcon"></i>
+                    <span class="online-mini"></span>
+                </div>
+                <div class="profile-info">
+                    <div class="name" id="profileName">—</div>
+                    <div class="handle" id="profileHandle">—</div>
+                    <div class="meta">
+                        <span class="profile-badge"><i class="fa-solid fa-check"></i> זוהה</span>
+                        <span id="profilePlatform">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="label-text">בחר כמות יעד</label>
+                <div class="amounts-grid">
+                    <div class="amount-btn free" onclick="selectAmount(10, this, false)">
+                        10
+                        <span class="tag">חינם</span>
+                    </div>
+                    <div class="amount-btn free selected" onclick="selectAmount(50, this, false)">
+                        50
+                        <span class="tag">חינם</span>
+                    </div>
+                    <div class="amount-btn pro" onclick="selectAmount(100, this, true)">
+                        100
+                        <span class="tag">PRO</span>
+                    </div>
+                    <div class="amount-btn pro" onclick="selectAmount(500, this, true)">
+                        500
+                        <span class="tag">PRO</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="action-btn" id="startBtn" onclick="startProcess()">התחל תהליך צמיחה</button>
+
+            <div class="trust-row">
+                <div class="trust-item"><i class="fa-solid fa-shield-halved"></i> מאובטח SSL</div>
+                <div class="trust-item"><i class="fa-solid fa-bolt"></i> עיבוד מהיר</div>
+                <div class="trust-item"><i class="fa-solid fa-headset"></i> תמיכה 24/7</div>
+            </div>
+            <div class="security-bar">
+                <i class="fa-solid fa-lock"></i>
+                חיבור מוצפן • הנתונים שלך מוגנים
+            </div>
+        </div>
+
+        <div id="viewLoading" class="view-section">
+            <div class="header-title">
+                <h1>מעבד בקשה ברשת</h1>
+                <p>מערכת ה-AI מבצעת אופטימיזציה וחיבור לשרתים</p>
+            </div>
+
+            <div class="loading-container">
+                <div class="liquid-bar-wrapper">
+                    <div id="liquidFill" class="liquid-fill"></div>
+                </div>
+
+                <div class="stats-row">
+                    <span class="stats-label">התקדמות תהליך</span>
+                    <span id="percentText" class="stats-value">0%</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">זמן משוער שנותר</span>
+                    <span id="timerText" class="stats-value">02:00</span>
+                </div>
+                <div id="statusMessage" class="status-message">מתחבר לשרתי האופטימיזציה...</div>
+            </div>
+        </div>
+
+        <div id="viewSuccess" class="view-section">
+            <div class="success-box">
+                <div class="success-icon-glow">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+                <h2>ההזמנה התחילה בהצלחה!</h2>
+                <p>צמיחת העוקבים והאינטראקציות בעמוד שלך החלה ברגעים אלו ממש דרך המערכת האוטומטית.</p>
+                
+                <div class="order-id" id="orderIdDisplay"></div>
+                <div class="order-summary" id="orderSummary"></div>
+
+                <button class="action-btn" onclick="resetToHome()">חזור למסך הראשי</button>
+            </div>
+        </div>
+    </div>
+
+    <a href="https://t.me/user?id=8017590244" target="_blank" rel="noopener" class="support-btn" title="תמיכה ישירה">
+        <i class="fa-brands fa-telegram"></i>
+    </a>
+
+    <footer class="site-footer">
+        <div class="copyright">© 2026 AI Agent Code — כל הזכויות שמורות</div>
+        <div class="links">
+            <a href="https://t.me/user?id=8017590244" target="_blank">תמיכה</a>
+            <a href="#" onclick="alert('המערכת פועלת באופן אוטומטי ומאובטח.\nלשאלות נוספות פנה לתמיכה.'); return false;">הדרכה</a>
+            <a href="#" onclick="document.getElementById('viewForm').scrollIntoView({behavior:'smooth'}); return false;">לפאנל</a>
+        </div>
+        <div class="extra-links">
+            <a href="https://t.me/add_sub_Q" target="_blank" rel="noopener">add_sub_Q</a>
+            <a href="https://linktr.ee/memberflow" target="_blank" rel="noopener">MemberFlow</a>
+            <a href="https://socprofile.com/add_sud_bot" target="_blank" rel="noopener">SocProfile</a>
+            <a href="http://t.me/add_sud_bot" target="_blank" rel="noopener">add_sud_bot</a>
+        </div>
+    </footer>
+
+    <script>
+        let selectedPlatform = 'instagram';
+        let selectedAmount = 50;
+        let isProAmount = false;
+        let timerInterval = null;
+        let currentOrder = null;
+        let pendingProAmount = null;
+
+        const platformNames = {
+            instagram: 'אינסטגרם',
+            facebook: 'פייסבוק',
+            tiktok: 'טיקטוק',
+            telegram: 'טלגרם'
+        };
+
+        const platformIcons = {
+            instagram: 'fa-brands fa-instagram',
+            facebook: 'fa-brands fa-facebook',
+            tiktok: 'fa-brands fa-tiktok',
+            telegram: 'fa-brands fa-telegram'
+        };
+
+        const statusMessages = [
+            'מתחבר לשרתי האופטימיזציה...',
+            'מנתח את הפרופיל שלך...',
+            'מאתר מקורות צמיחה איכותיים...',
+            'מבצע חיבור לרשתות...',
+            'מפעיל אלגוריתם AI...',
+            'מאמת תקינות יעד...',
+            'מכין חבילת צמיחה...',
+            'שולח בקשה לשרתים...',
+            'מבצע אופטימיזציה סופית...',
+            'כמעט מוכן...'
+        ];
+
+        function initStats() {
+            const baseVisits = 1847;
+            const baseOrders = 392;
+            const baseUsers = 1256;
+
+            let visits = parseInt(localStorage.getItem('ai_visits') || '0');
+            let orders = parseInt(localStorage.getItem('ai_orders') || '0');
+            let users = parseInt(localStorage.getItem('ai_users') || '0');
+
+            visits += 1;
+            localStorage.setItem('ai_visits', visits);
+
+            if (!localStorage.getItem('ai_user_id')) {
+                localStorage.setItem('ai_user_id', 'u_' + Date.now() + Math.random().toString(36).substr(2, 6));
+                users += 1;
+                localStorage.setItem('ai_users', users);
+            }
+
+            document.getElementById('statVisits').textContent = (baseVisits + visits).toLocaleString('he-IL');
+            document.getElementById('statOrders').textContent = (baseOrders + orders).toLocaleString('he-IL');
+            document.getElementById('statUsers').textContent = (baseUsers + users).toLocaleString('he-IL');
+        }
+
+        function incrementOrders() {
+            let orders = parseInt(localStorage.getItem('ai_orders') || '0') + 1;
+            localStorage.setItem('ai_orders', orders);
+            document.getElementById('statOrders').textContent = (392 + orders).toLocaleString('he-IL');
+        }
+
+        function selectPlatform(platform, element) {
+            document.querySelectorAll('.platform-card').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedPlatform = platform;
+            onTargetInput();
+        }
+
+        function selectAmount(amount, element, isPro) {
+            if (isPro) {
+                pendingProAmount = amount;
+                openPaymentModal();
+                return;
+            }
+            document.querySelectorAll('.amount-btn').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedAmount = amount;
+            isProAmount = false;
+        }
+
+        function onTargetInput() {
+            const val = document.getElementById('targetInput').value.trim();
+            const preview = document.getElementById('profilePreview');
+
+            if (val.length < 2) {
+                preview.classList.remove('show');
+                return;
+            }
+
+            let clean = val
+                .replace(/^https?:\/\//, '')
+                .replace(/^(www\.)?/, '')
+                .replace(/instagram\.com\//, '')
+                .replace(/facebook\.com\//, '')
+                .replace(/tiktok\.com\/@?/, '')
+                .replace(/t\.me\//, '')
+                .replace(/telegram\.me\//, '')
+                .replace(/\/.*/, '')
+                .replace(/^@/, '')
+                .trim();
+
+            if (!clean) clean = val;
+
+            const displayName = clean.charAt(0).toUpperCase() + clean.slice(1);
+            const handle = '@' + clean.toLowerCase().replace(/\s+/g, '_');
+
+            document.getElementById('profileName').textContent = displayName;
+            document.getElementById('profileHandle').textContent = handle;
+            document.getElementById('profilePlatform').textContent = platformNames[selectedPlatform];
+            document.getElementById('profileIcon').className = platformIcons[selectedPlatform];
+
+            preview.classList.add('show');
+        }
+
+        function openPaymentModal() {
+            document.getElementById('paymentModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('show');
+            document.body.style.overflow = '';
+            pendingProAmount = null;
+        }
+
+        // ===== Crypto Pay – יצירת חשבונית אמיתית =====
+        async function selectPlan(planType, price) {
+            const btn = event.currentTarget;
+            const original = btn.innerHTML;
+            btn.style.opacity = '0.6';
+            btn.style.pointerEvents = 'none';
+
+            try {
+                const target = document.getElementById('targetInput').value.trim() || null;
+                const userId = localStorage.getItem('ai_user_id') || 'guest';
+
+                const res = await fetch('/api/create-invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plan: planType,
+                        price: price,
+                        amount: pendingProAmount,
+                        target: target,
+                        platform: selectedPlatform,
+                        userId: userId
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!data.success || !data.payUrl) {
+                    throw new Error(data.error || 'יצירת חשבונית נכשלה');
+                }
+
+                // פותח את דף התשלום של Crypto Bot
+                window.open(data.payUrl, '_blank');
+                closePaymentModal();
+
+                // הודעה קצרה למשתמש
+                showError('נפתח חלון תשלום • לאחר התשלום החזר לאתר');
+            } catch (err) {
+                console.error(err);
+                alert('שגיאה ביצירת חשבונית:\n' + (err.message || 'נסה שוב'));
+            } finally {
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
+        }
+
+        function startProcess() {
+            const inputVal = document.getElementById('targetInput').value.trim();
+            if (!inputVal) {
+                showError('אנא הזן שם משתמש או קישור תקין לעמוד.');
+                document.getElementById('targetInput').focus();
+                return;
+            }
+
+            if (isProAmount) {
+                openPaymentModal();
+                return;
+            }
+
+            const orderId = 'ORD-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+
+            const userAgent = navigator.userAgent;
+            const language = navigator.language || 'he-IL';
+            const screenInfo = window.screen.width + 'x' + window.screen.height;
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const userId = localStorage.getItem('ai_user_id') || 'guest';
+
+            currentOrder = {
+                orderId,
+                platform: selectedPlatform,
+                platformName: platformNames[selectedPlatform],
+                target: inputVal,
+                amount: selectedAmount,
+                isPro: false,
+                timestamp: new Date().toISOString(),
+                localTime: new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' }),
+                userId,
+                userAgent: userAgent.substring(0, 120),
+                language,
+                screen: screenInfo,
+                timezone,
+                referrer: document.referrer || 'ישיר'
+            };
+
+            document.getElementById('viewForm').classList.remove('active');
+            document.getElementById('viewLoading').classList.add('active');
+            document.getElementById('startBtn').disabled = true;
+
+            const totalSeconds = 120;
+            let elapsedSeconds = 0;
+
+            const liquidFill = document.getElementById('liquidFill');
+            const percentText = document.getElementById('percentText');
+            const timerText = document.getElementById('timerText');
+            const statusMessage = document.getElementById('statusMessage');
+
+            let statusIndex = 0;
+            statusMessage.textContent = statusMessages[0];
+
+            timerInterval = setInterval(() => {
+                elapsedSeconds++;
+                let progress = Math.min((elapsedSeconds / totalSeconds) * 100, 100);
+
+                liquidFill.style.width = progress + '%';
+                percentText.innerText = Math.floor(progress) + '%';
+
+                let remaining = Math.max(totalSeconds - elapsedSeconds, 0);
+                let minutes = Math.floor(remaining / 60);
+                let seconds = remaining % 60;
+                timerText.innerText = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+
+                const newIndex = Math.min(Math.floor(elapsedSeconds / 12), statusMessages.length - 1);
+                if (newIndex !== statusIndex) {
+                    statusIndex = newIndex;
+                    statusMessage.style.opacity = 0;
+                    setTimeout(() => {
+                        statusMessage.textContent = statusMessages[statusIndex];
+                        statusMessage.style.opacity = 1;
+                    }, 200);
+                }
+
+                if (elapsedSeconds >= totalSeconds) {
+                    clearInterval(timerInterval);
+                    finishOrder();
+                }
+            }, 1000);
+        }
+
+        async function finishOrder() {
+            incrementOrders();
+
+            document.getElementById('orderIdDisplay').textContent = 'מספר הזמנה: ' + currentOrder.orderId;
+            document.getElementById('orderSummary').innerHTML = 
+                '<div class="row"><span class="label">רשת</span><span class="value">' + currentOrder.platformName + '</span></div>' +
+                '<div class="row"><span class="label">יעד</span><span class="value">' + escapeHtml(currentOrder.target) + '</span></div>' +
+                '<div class="row"><span class="label">כמות</span><span class="value">' + currentOrder.amount + ' (חינם)</span></div>' +
+                '<div class="row"><span class="label">שעה</span><span class="value">' + currentOrder.localTime + '</span></div>';
+
+            document.getElementById('viewLoading').classList.remove('active');
+            document.getElementById('viewSuccess').classList.add('active');
+
+            try {
+                await sendOrderToBot(currentOrder);
+            } catch (err) {
+                console.warn('שליחה לבוט נכשלה:', err.message);
+            }
+        }
+
+        async function sendOrderToBot(order) {
+            const endpoint = '/api/notify-order';
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(order)
+            });
+            if (!response.ok) throw new Error('Server ' + response.status);
+            return response.json();
+        }
+
+        function resetToHome() {
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('viewSuccess').classList.remove('active');
+            document.getElementById('viewForm').classList.add('active');
+            document.getElementById('targetInput').value = '';
+            document.getElementById('profilePreview').classList.remove('show');
+            document.getElementById('liquidFill').style.width = '0%';
+            document.getElementById('percentText').innerText = '0%';
+            document.getElementById('timerText').innerText = '02:00';
+            document.getElementById('startBtn').disabled = false;
+            currentOrder = null;
+        }
+
+        function showError(msg) {
+            const toast = document.getElementById('errorToast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3500);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        initStats();
+    </script>
+</body>
+</html>
